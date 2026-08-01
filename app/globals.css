@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: #f2f4f3;
+  color: #22262b;
+}
+
+* {
+  border-color: #d8deda;
+}
+
+/* Visible keyboard focus everywhere, styled to match the accent. */
+:focus-visible {
+  outline: 2px solid #2f6f4f;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background-color: #cbe0d3;
+  color: #22262b;
+}
+
+/* Thin, quiet scrollbars that don't fight the paper aesthetic. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #c1c9c4;
+  border-radius: 999px;
+  border: 2px solid #f2f4f3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.tap-target {
+  min-height: 3rem;
+  min-width: 3rem;
+}
