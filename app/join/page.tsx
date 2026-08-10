@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { QrCode } from "lucide-react";
-
+import {useRouter} from "next/navigation"
 function cleanCode(raw: string): string {
   return raw.toUpperCase().replace(/[^A-Z0-9-]/g, "");
 }
@@ -10,6 +10,7 @@ function cleanCode(raw: string): string {
 export default function JoinPage() {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
+  const router = useRouter()
 
   useEffect(() => {
     const codeFromUrl = new URL(window.location.href).searchParams.get("code");
@@ -19,6 +20,7 @@ export default function JoinPage() {
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setMessage("Joining lectures will be available once the backend is connected.");
+    router.push(`/lecture/${code}/view`);
   }
 
   return (
