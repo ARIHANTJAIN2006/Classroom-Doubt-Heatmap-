@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { FileText, UploadCloud, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,88 +14,78 @@ type Status = "idle" | "reading" | "rendering" | "done" | "error";
 
 export default function UploadDropzone({ onComplete, onReset }: UploadDropzoneProps) {
   const [status, setStatus] = useState<Status>("idle");
-  const [fileName, setFileName] = useState<string>("");
-  const [pageProgress, setPageProgress] = useState<{ current: number; total: number }>({
-    current: 0,
-    total: 0,
-  });
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [fileName, setFileName] = useState("");
+  const [pageProgress, setPageProgress] = useState({ current: 0, total: 0 });
+  const [errorMessage, setErrorMessage] = useState("");
   const [isDragActive, setIsDragActive] = useState(false);
+
+  // useRef is the simplest way to reference a hidden DOM element for click-to-upload
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const processFile = useCallback(
-    async (file: File) => {
-      if (file.type !== "application/pdf") {
-        setStatus("error");
-        setErrorMessage("That doesn't look like a PDF. Please choose a .pdf file.");
-        return;
+  async function processFile(file: File) {
+    if (file.type !== "application/pdf") {
+      setStatus("error");
+      setErrorMessage("That doesn't look like a PDF. Please choose a .pdf file.");
+      return;
+    }
+
+    setFileName(file.name);
+    setStatus("reading");
+    setErrorMessage("");
+
+    try {
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+      setStatus("rendering");
+      setPageProgress({ current: 0, total: pdf.numPages });
+
+      const pages: string[] = [];
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Canvas not supported");
+        await page.render({ canvasContext: context, viewport }).promise;
+        pages.push(canvas.toDataURL("image/png"));
+        setPageProgress({ current: pageNum, total: pdf.numPages });
       }
 
-      setFileName(file.name);
-      setStatus("reading");
-      setErrorMessage("");
+      setStatus("done");
+      onComplete(pages);
+    } catch (err) {
+      console.error(err);
+      setStatus("error");
+      setErrorMessage("We couldn't read that PDF. Try a different file.");
+    }
+  }
 
-      try {
-        const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  }
 
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  function handleInputChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  }
 
-        setStatus("rendering");
-        setPageProgress({ current: 0, total: pdf.numPages });
-
-        const pages: string[] = [];
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
-          const page = await pdf.getPage(pageNum);
-          const viewport = page.getViewport({ scale: 1.5 });
-          const canvas = document.createElement("canvas");
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          const context = canvas.getContext("2d");
-          if (!context) throw new Error("Canvas not supported");
-          await page.render({ canvasContext: context, viewport }).promise;
-          pages.push(canvas.toDataURL("image/png"));
-          setPageProgress({ current: pageNum, total: pdf.numPages });
-        }
-
-        setStatus("done");
-        onComplete(pages);
-      } catch (err) {
-        console.error(err);
-        setStatus("error");
-        setErrorMessage("We couldn't read that PDF. Try a different file.");
-      }
-    },
-    [onComplete]
-  );
-
-  const handleDrop = useCallback(
-    (e: DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      setIsDragActive(false);
-      const file = e.dataTransfer.files?.[0];
-      if (file) void processFile(file);
-    },
-    [processFile]
-  );
-
-  const handleInputChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) void processFile(file);
-    },
-    [processFile]
-  );
-
-  const handleClear = () => {
+  function handleClear() {
     setStatus("idle");
     setFileName("");
     setPageProgress({ current: 0, total: 0 });
     setErrorMessage("");
     if (inputRef.current) inputRef.current.value = "";
     onReset?.();
-  };
+  }
 
   if (status === "done") {
     return (

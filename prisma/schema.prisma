@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model Teacher {
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
+  lectures Lecture[]
+  createdAt DateTime @default(now())
+}
+model Lecture {
+  id String @id @default(cuid())
+  name String
+  pdfUrl String
+  pdfPublicId String
+  joinCode String @unique
+  teacherId String
+  teacher Teacher @relation(fields: [teacherId],   references: [id],onDelete:Cascade  )
+  slides Slide[]
+  createdAt DateTime @default(now())
+}
+model Slide {
+  id String @id @default(cuid())
+  slideNumber Int
+  imageUrl String
+  imagePublicId String
+  lectureId String
+  lecture Lecture @relation( fields: [lectureId],    references: [id], onDelete: Cascade)
+  confusionRatings ConfusionRating[]
+  createdAt DateTime @default(now())
+}
+
+
+model ConfusionRating {
+  id String @id @default(cuid())
+  slideId String
+  slide Slide @relation(fields: [slideId],   references: [id], onDelete: Cascade)
+  participantId String
+  rating Rating
+  createdAt DateTime @default(now())
+  @@unique([slideId, participantId])
+}
+enum Rating {
+  confusing
+  clear
+}

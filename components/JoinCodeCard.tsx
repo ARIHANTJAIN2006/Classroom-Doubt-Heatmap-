@@ -18,7 +18,6 @@ export default function JoinCodeCard({ code, joinUrl }: JoinCodeCardProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Clipboard API unavailable — fail quietly, code is still visible.
     }
   };
 

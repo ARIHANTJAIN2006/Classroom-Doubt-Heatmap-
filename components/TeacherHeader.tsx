@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
-import { logOutTeacher } from "@/lib/mockApi";
 import { cn } from "@/lib/utils";
 
 interface TeacherHeaderProps {
@@ -14,24 +13,9 @@ export default function TeacherHeader({ teacherName }: TeacherHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const navItem = (href: string, label: string) => (
-    <Link
-      href={href}
-      className={cn(
-        "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-        pathname === href
-          ? "bg-accent-soft text-accent"
-          : "text-ink-muted hover:text-ink"
-      )}
-    >
-      {label}
-    </Link>
-  );
-
-  const handleLogOut = async () => {
-    await logOutTeacher();
+  function handleLogOut() {
     router.push("/login");
-  };
+  }
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4 sm:px-10">
@@ -39,8 +23,28 @@ export default function TeacherHeader({ teacherName }: TeacherHeaderProps) {
         <span className="font-serif text-lg text-ink">Doubt Heatmap</span>
       </Link>
       <nav className="flex items-center gap-1">
-        {navItem("/teacher", "Dashboard")}
-        {navItem("/teacher/trends", "Trends")}
+        <Link
+          href="/teacher"
+          className={cn(
+            "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+            pathname === "/teacher"
+              ? "bg-accent-soft text-accent"
+              : "text-ink-muted hover:text-ink"
+          )}
+        >
+          Dashboard
+        </Link>
+        <Link
+          href="/teacher/trends"
+          className={cn(
+            "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+            pathname === "/teacher/trends"
+              ? "bg-accent-soft text-accent"
+              : "text-ink-muted hover:text-ink"
+          )}
+        >
+          Trends
+        </Link>
       </nav>
       <div className="flex items-center gap-3">
         <span className="font-mono text-xs text-ink-faint">{teacherName}</span>
@@ -57,4 +61,3 @@ export default function TeacherHeader({ teacherName }: TeacherHeaderProps) {
     </header>
   );
 }
-

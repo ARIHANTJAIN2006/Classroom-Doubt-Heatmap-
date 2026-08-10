@@ -5,28 +5,17 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
-import { logInTeacher } from "@/lib/mockApi";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
     if (!email.trim() || !password) return;
-    setSubmitting(true);
-    setError("");
-    try {
-      await logInTeacher(email, password);
-      router.push("/teacher");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong logging in.");
-      setSubmitting(false);
-    }
-  };
+    router.push("/teacher");
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6 py-16">
@@ -53,7 +42,7 @@ export default function LoginPage() {
               autoFocus
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               placeholder="you@school.edu"
               className="tap-target w-full rounded-lg border border-line bg-white px-4 text-ink placeholder:text-ink-faint focus:border-accent"
             />
@@ -68,21 +57,19 @@ export default function LoginPage() {
               type="password"
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
               className="tap-target w-full rounded-lg border border-line bg-white px-4 text-ink placeholder:text-ink-faint focus:border-accent"
             />
           </div>
 
-          {error && <p className="text-sm text-heat-red">{error}</p>}
-
           <button
             type="submit"
-            disabled={!email.trim() || !password || submitting}
+            disabled={!email.trim() || !password}
             className="tap-target flex items-center justify-center gap-2 rounded-full bg-accent px-4 text-sm font-medium text-white transition-opacity disabled:opacity-50"
           >
             <LogIn size={16} />
-            {submitting ? "Logging in…" : "Log in"}
+            Log in
           </button>
 
           <p className="text-center text-xs text-ink-faint">
@@ -94,8 +81,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-xs text-ink-faint">
-          This is a demo account system — stored only in your browser, not verified by
-          any server.
+          Authentication will be connected when the backend is ready.
         </p>
 
         <p className="mt-3 text-center text-xs text-ink-faint">

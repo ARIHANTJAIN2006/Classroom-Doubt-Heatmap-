@@ -17,8 +17,6 @@ export default function SlideHeatThumbnail({
   selected = false,
 }: SlideHeatThumbnailProps) {
   const heatColor = getHeatColor(aggregate.intensity);
-  // Opacity carries the signal, not just hue, so it stays legible even for
-  // someone who can't distinguish blue from red.
   const washOpacity = 0.12 + aggregate.intensity * 0.58;
 
   return (
@@ -37,7 +35,6 @@ export default function SlideHeatThumbnail({
         draggable={false}
       />
 
-      {/* Heat wash — a soft highlighter-like soak, not a hard color block. */}
       <div
         className="pointer-events-none absolute inset-0 animate-heat-soak mix-blend-multiply"
         style={

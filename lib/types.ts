@@ -1,13 +1,3 @@
-export interface TeacherAccount {
-  id: string;
-  name: string;
-  email: string;
-  // Mock-only: stored in localStorage, never hashed or verified server-side.
-  // There is no real backend here — see lib/mockApi.ts.
-  password: string;
-  createdAt: string;
-}
-
 export interface Lecture {
   id: string;
   teacherName: string;
@@ -15,10 +5,10 @@ export interface Lecture {
   subject: string;
   unit: string;
   topic: string;
-  date: string; // ISO date
-  joinCode: string; // short human-friendly code, e.g. "PHY-482"
+  date: string;
+  joinCode: string;
   slideCount: number;
-  status: "open" | "closed"; // review window open/closed
+  status: "open" | "closed";
   createdAt: string;
 }
 
@@ -26,22 +16,10 @@ export interface Slide {
   id: string;
   lectureId: string;
   index: number;
-  imageUrl: string; // data URL from client-side PDF render, or seeded placeholder
+  imageUrl: string;
 }
 
 export type ReactionType = "confused" | "too_fast" | "important";
-
-export interface ConfusionMark {
-  id: string;
-  lectureId: string;
-  slideId: string;
-  studentSessionId: string; // anonymous, stored in localStorage per lecture
-  reaction: ReactionType;
-  // Reserved for future region-level marking — not implemented in the UI yet.
-  x?: number;
-  y?: number;
-  createdAt: string;
-}
 
 export interface SlideAggregate {
   slideId: string;
@@ -49,11 +27,9 @@ export interface SlideAggregate {
   imageUrl: string;
   totalMarks: number;
   breakdown: Record<ReactionType, number>;
-  intensity: number; // normalized 0–1, drives heatmap color
+  intensity: number;
 }
 
-// Derived / read-model types used by the trends view. These are computed from
-// Lecture + ConfusionMark data inside lib/mockApi.ts — nothing new is persisted.
 export interface TrendPoint {
   lectureId: string;
   title: string;
@@ -61,7 +37,7 @@ export interface TrendPoint {
   unit: string;
   topic: string;
   date: string;
-  confusionRate: number; // 0–1, weighted confusion signal for the lecture
+  confusionRate: number;
   totalMarks: number;
   slideCount: number;
 }

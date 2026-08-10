@@ -98,7 +98,7 @@ export function shuffle<T>(arr: T[]): T[] {
 /**
  * Groups trend points by subject + topic and surfaces topics that recur
  * across two or more lectures — the "not just one bad day" signal.
- * Pure function: operates only on data already returned by mockApi.
+ * Pure function: operates only on data supplied by the backend.
  */
 export function computeTopicConsistency(points: TrendPoint[]): TopicConsistency[] {
   const groups = new Map<string, TrendPoint[]>();
