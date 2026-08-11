@@ -3,6 +3,7 @@ node_modules
 out
 .DS_Store
 *.log
+.env
 .env*.local
 
 /lib/generated/prisma

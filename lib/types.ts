@@ -19,7 +19,8 @@ export interface Slide {
   imageUrl: string;
 }
 
-export type ReactionType = "confused" | "too_fast" | "important";
+// Mirrors the `Rating` enum in prisma/schema.prisma.
+export type ReactionType = "confusing" | "clear";
 
 export interface SlideAggregate {
   slideId: string;
@@ -50,10 +51,9 @@ export interface TopicConsistency {
   trend: "rising" | "stable" | "falling";
 }
 
-export const REACTION_TYPES: ReactionType[] = ["confused", "too_fast", "important"];
+export const REACTION_TYPES: ReactionType[] = ["confusing", "clear"];
 
 export const REACTION_LABELS: Record<ReactionType, string> = {
-  confused: "Confused",
-  too_fast: "Too fast",
-  important: "Important",
+  confusing: "Confusing",
+  clear: "Clear",
 };

@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { QrCode } from "lucide-react";
-import {useRouter} from "next/navigation"
+import { useRouter } from "next/navigation";
+
 function cleanCode(raw: string): string {
   return raw.toUpperCase().replace(/[^A-Z0-9-]/g, "");
 }
 
 export default function JoinPage() {
   const [code, setCode] = useState("");
-  const [message, setMessage] = useState("");
-  const router = useRouter()
+  const router = useRouter();
 
   useEffect(() => {
     const codeFromUrl = new URL(window.location.href).searchParams.get("code");
@@ -19,7 +19,7 @@ export default function JoinPage() {
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setMessage("Joining lectures will be available once the backend is connected.");
+    if (!code.trim()) return;
     router.push(`/lecture/${code}/view`);
   }
 
@@ -34,18 +34,13 @@ export default function JoinPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             value={code}
-            onChange={(event) => {
-              setCode(cleanCode(event.target.value));
-              setMessage("");
-            }}
+            onChange={(event) => setCode(cleanCode(event.target.value))}
             placeholder="PHY-482"
             autoFocus
             autoCapitalize="characters"
             inputMode="text"
             className="tap-target w-full rounded-lg border border-line bg-white px-4 text-center font-mono text-2xl tracking-widest text-ink placeholder:text-ink-faint focus:border-accent"
           />
-
-          {message && <p className="text-sm text-ink-muted">{message}</p>}
 
           <button
             type="submit"
