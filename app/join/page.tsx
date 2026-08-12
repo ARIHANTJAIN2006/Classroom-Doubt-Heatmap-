@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { QrCode } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ApiError, joinLecture } from "@/lib/api";
 
 function cleanCode(raw: string): string {
   return raw.toUpperCase().replace(/[^A-Z0-9-]/g, "");
@@ -11,8 +10,6 @@ function cleanCode(raw: string): string {
 
 export default function JoinPage() {
   const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -20,25 +17,10 @@ export default function JoinPage() {
     if (codeFromUrl) setCode(cleanCode(codeFromUrl));
   }, []);
 
-  async function handleSubmit(event: React.FormEvent) {
+  function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!code.trim()) return;
-    setError("");
-    setSubmitting(true);
-    try {
-      await joinLecture(code);
-      router.push(`/lecture/${code}/view`);
-    } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.status === 404
-            ? "That code doesn't match a lecture."
-            : err.message
-          : "Couldn't join. Try again."
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    router.push(`/lecture/${code}/view`);
   }
 
   return (
@@ -60,14 +42,12 @@ export default function JoinPage() {
             className="tap-target w-full rounded-lg border border-line bg-white px-4 text-center font-mono text-2xl tracking-widest text-ink placeholder:text-ink-faint focus:border-accent"
           />
 
-          {error && <p className="text-sm text-heat-red">{error}</p>}
-
           <button
             type="submit"
-            disabled={!code.trim() || submitting}
+            disabled={!code.trim()}
             className="tap-target rounded-full bg-accent px-4 text-sm font-medium text-white transition-opacity disabled:opacity-50"
           >
-            {submitting ? "Joining..." : "Join lecture"}
+            Join lecture
           </button>
         </form>
 

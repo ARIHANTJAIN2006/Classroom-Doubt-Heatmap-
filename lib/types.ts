@@ -9,8 +9,6 @@ export interface Lecture {
   joinCode: string;
   slideCount: number;
   status: "open" | "closed";
-  gridRows: number;
-  gridCols: number;
   createdAt: string;
 }
 
@@ -21,27 +19,16 @@ export interface Slide {
   imageUrl: string;
 }
 
-// A single marked grid cell on a slide, as toggled by a student.
-export interface GridCell {
-  row: number;
-  col: number;
-}
-
-// A grid cell aggregated across every student who marked it on a slide.
-export interface HeatmapCell extends GridCell {
-  count: number;
-  /** Normalized 0..1 — count / totalParticipants. Feed into getHeatColor(). */
-  intensity: number;
-}
+// Mirrors the `Rating` enum in prisma/schema.prisma.
+export type ReactionType = "confusing" | "clear";
 
 export interface SlideAggregate {
   slideId: string;
   index: number;
   imageUrl: string;
-  gridRows: number;
-  gridCols: number;
-  totalParticipants: number;
-  cells: HeatmapCell[];
+  totalMarks: number;
+  breakdown: Record<ReactionType, number>;
+  intensity: number;
 }
 
 export interface TrendPoint {
@@ -63,3 +50,10 @@ export interface TopicConsistency {
   avgConfusionRate: number;
   trend: "rising" | "stable" | "falling";
 }
+
+export const REACTION_TYPES: ReactionType[] = ["confusing", "clear"];
+
+export const REACTION_LABELS: Record<ReactionType, string> = {
+  confusing: "Confusing",
+  clear: "Clear",
+};

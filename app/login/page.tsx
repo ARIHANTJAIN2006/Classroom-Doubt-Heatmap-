@@ -5,30 +5,16 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
-import { ApiError, login, setTeacherName, setToken } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!email.trim() || !password) return;
-    setError("");
-    setSubmitting(true);
-    try {
-      const { token, teacher } = await login(email.trim(), password);
-      setToken(token);
-      setTeacherName(teacher.name);
-      router.push("/teacher");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Couldn't log in. Try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    router.push("/teacher");
   }
 
   return (
@@ -77,15 +63,13 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && <p className="text-sm text-heat-red">{error}</p>}
-
           <button
             type="submit"
-            disabled={!email.trim() || !password || submitting}
+            disabled={!email.trim() || !password}
             className="tap-target flex items-center justify-center gap-2 rounded-full bg-accent px-4 text-sm font-medium text-white transition-opacity disabled:opacity-50"
           >
             <LogIn size={16} />
-            {submitting ? "Logging in..." : "Log in"}
+            Log in
           </button>
 
           <p className="text-center text-xs text-ink-faint">
@@ -95,6 +79,10 @@ export default function LoginPage() {
             </Link>
           </p>
         </form>
+
+        <p className="mt-6 text-center text-xs text-ink-faint">
+          Authentication will be connected when the backend is ready.
+        </p>
 
         <p className="mt-3 text-center text-xs text-ink-faint">
           Joining as a student?{" "}
