@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
+import { ApiError, setTeacherName, setToken, signup } from "@/lib/api";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -15,8 +16,9 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError("");
 
@@ -30,7 +32,17 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/teacher");
+    setSubmitting(true);
+    try {
+      const { token, teacher } = await signup(name.trim(), email.trim(), password);
+      setToken(token);
+      setTeacherName(teacher.name);
+      router.push("/teacher");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Couldn't create your account. Try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -112,11 +124,11 @@ export default function SignupPage() {
 
           <button
             type="submit"
-            disabled={!name.trim() || !email.trim() || !password}
+            disabled={!name.trim() || !email.trim() || !password || submitting}
             className="tap-target flex items-center justify-center gap-2 rounded-full bg-accent px-4 text-sm font-medium text-white transition-opacity disabled:opacity-50"
           >
             <UserPlus size={16} />
-            Create account
+            {submitting ? "Creating account..." : "Create account"}
           </button>
 
           <p className="text-center text-xs text-ink-faint">
@@ -126,10 +138,6 @@ export default function SignupPage() {
             </Link>
           </p>
         </form>
-
-        <p className="mt-6 text-center text-xs text-ink-faint">
-          Authentication will be connected when the backend is ready.
-        </p>
       </div>
     </main>
   );

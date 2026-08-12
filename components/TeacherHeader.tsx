@@ -1,19 +1,30 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { clearToken, getTeacherName } from "@/lib/api";
 
 interface TeacherHeaderProps {
-  teacherName: string;
+  /** Optional SSR fallback; the real value (from localStorage) is filled in after mount. */
+  teacherName?: string;
 }
 
-export default function TeacherHeader({ teacherName }: TeacherHeaderProps) {
+export default function TeacherHeader({ teacherName = "Teacher" }: TeacherHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  // Starts at the SSR-safe fallback so the server and first client render match;
+  // localStorage is only readable after mount, so the real name is filled in then.
+  const [displayName, setDisplayName] = useState(teacherName);
+
+  useEffect(() => {
+    setDisplayName(getTeacherName());
+  }, []);
 
   function handleLogOut() {
+    clearToken();
     router.push("/login");
   }
 
@@ -47,7 +58,7 @@ export default function TeacherHeader({ teacherName }: TeacherHeaderProps) {
         </Link>
       </nav>
       <div className="flex items-center gap-3">
-        <span className="font-mono text-xs text-ink-faint">{teacherName}</span>
+        <span className="font-mono text-xs text-ink-faint">{displayName}</span>
         <button
           type="button"
           onClick={handleLogOut}

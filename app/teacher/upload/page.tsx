@@ -2,32 +2,51 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import TeacherHeader from "@/components/TeacherHeader";
 import UploadDropzone from "@/components/UploadDropzone";
+import { ApiError, createLecture } from "@/lib/api";
 
 export default function UploadLecturePage() {
+  const router = useRouter();
   const [pages, setPages] = useState<string[] | null>(null);
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [unit, setUnit] = useState("");
   const [topic, setTopic] = useState("");
   const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const canSubmit = Boolean(pages?.length && title.trim() && subject.trim());
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!canSubmit) return;
-    setMessage("Your slides are ready to send once the backend upload endpoint is connected.");
+    if (!canSubmit || !pages) return;
+    setSubmitting(true);
+    setMessage("");
+    try {
+      const lecture = await createLecture({
+        title: title.trim(),
+        subject: subject.trim(),
+        unit: unit.trim(),
+        topic: topic.trim(),
+        images: pages,
+      });
+      router.push(`/teacher/lecture/${lecture.id}`);
+    } catch (err) {
+      setMessage(err instanceof ApiError ? err.message : "Couldn't upload the lecture. Try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <div className="flex min-h-screen flex-col">
-      <TeacherHeader teacherName="Teacher" />
+      <TeacherHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10 sm:px-10">
         <h1 className="mb-1 font-serif text-2xl text-ink sm:text-3xl">Upload today&apos;s slides</h1>
         <p className="mb-8 text-sm text-ink-muted">
-          Slides can be previewed here. Saving them will be enabled when the backend is ready.
+          Students will get a join code once you prepare the lecture.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -100,10 +119,10 @@ export default function UploadLecturePage() {
 
           <button
             type="submit"
-            disabled={!canSubmit}
+            disabled={!canSubmit || submitting}
             className="tap-target self-start rounded-full bg-accent px-6 text-sm font-medium text-white transition-opacity disabled:opacity-50"
           >
-            Prepare lecture
+            {submitting ? "Uploading..." : "Prepare lecture"}
           </button>
         </form>
       </main>
