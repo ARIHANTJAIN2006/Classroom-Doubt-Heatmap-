@@ -5,16 +5,37 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
+import axios from "axios";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!email.trim() || !password) return;
-    router.push("/teacher");
+
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const response = await axios.post("/api/login", {
+        email: email.trim(),
+        password,
+      });
+      console.log(response.data);
+      router.push("/teacher");
+    } catch (err) {
+      const message =
+        axios.isAxiosError(err) && err.response?.data?.message
+          ? err.response.data.message
+          : "Something went wrong logging in.";
+      setError(message);
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -63,13 +84,15 @@ export default function LoginPage() {
             />
           </div>
 
+          {error && <p className="text-sm text-heat-red">{error}</p>}
+
           <button
             type="submit"
-            disabled={!email.trim() || !password}
+            disabled={!email.trim() || !password || submitting}
             className="tap-target flex items-center justify-center gap-2 rounded-full bg-accent px-4 text-sm font-medium text-white transition-opacity disabled:opacity-50"
           >
             <LogIn size={16} />
-            Log in
+            {submitting ? "Logging in…" : "Log in"}
           </button>
 
           <p className="text-center text-xs text-ink-faint">

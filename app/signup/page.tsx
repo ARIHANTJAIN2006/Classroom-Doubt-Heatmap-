@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
+import axios from "axios";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -15,6 +16,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -30,7 +32,25 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/teacher");
+    setSubmitting(true);
+    axios.post("/api/signup", {
+      name: name.trim(),
+      email: email.trim(),
+      password,
+    },
+  {withCredentials: true})
+      .then((response) => {
+        console.log(response.data);
+        router.push("/login");
+      })
+      .catch((err) => {
+        const message =
+          axios.isAxiosError(err) && err.response?.data?.message
+            ? err.response.data.message
+            : "Something went wrong signing up.";
+        setError(message);
+        setSubmitting(false);
+      });
   }
 
   return (
@@ -112,11 +132,11 @@ export default function SignupPage() {
 
           <button
             type="submit"
-            disabled={!name.trim() || !email.trim() || !password}
+            disabled={!name.trim() || !email.trim() || !password || submitting}
             className="tap-target flex items-center justify-center gap-2 rounded-full bg-accent px-4 text-sm font-medium text-white transition-opacity disabled:opacity-50"
           >
             <UserPlus size={16} />
-            Create account
+            {submitting ? "Creating account…" : "Create account"}
           </button>
 
           <p className="text-center text-xs text-ink-faint">
