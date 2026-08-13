@@ -19,6 +19,9 @@ model Teacher {
 model Lecture {
   id String @id @default(cuid())
   name String
+  topic String
+  semester Int
+  year Int
   pdfUrl String
   pdfPublicId String
   joinCode String @unique
