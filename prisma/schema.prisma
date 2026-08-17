@@ -38,6 +38,7 @@ model Slide {
   lectureId String
   lecture Lecture @relation( fields: [lectureId],    references: [id], onDelete: Cascade)
   confusionRatings ConfusionRating[]
+  @@unique([lectureId, slideNumber])
   createdAt DateTime @default(now())
 }
 

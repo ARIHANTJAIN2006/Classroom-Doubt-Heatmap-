@@ -1,24 +1,86 @@
 "use client";
 
-import { useState } from "react";
-import type { FormEvent } from "react";
+import { useRef, useState } from "react";
+import type { ChangeEvent, DragEvent, FormEvent } from "react";
 import TeacherHeader from "@/components/TeacherHeader";
-import UploadDropzone from "@/components/UploadDropzone";
 
 export default function UploadLecturePage() {
-  const [pages, setPages] = useState<string[] | null>(null);
-  const [title, setTitle] = useState("");
-  const [subject, setSubject] = useState("");
-  const [unit, setUnit] = useState("");
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
+  const [semester, setSemester] = useState("");
+  const [year, setYear] = useState("");
   const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canSubmit = Boolean(pages?.length && title.trim() && subject.trim());
+  const canSubmit = Boolean(
+    pdfFile && name.trim() && topic.trim() && semester.trim() && year.trim() && !submitting
+  );
 
-  function handleSubmit(event: FormEvent) {
+  function pickFile(file: File | undefined) {
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      setMessage("Please select a PDF file.");
+      return;
+    }
+    setPdfFile(file);
+    setMessage("");
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    pickFile(event.target.files?.[0]);
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
-    if (!canSubmit) return;
-    setMessage("Your slides are ready to send once the backend upload endpoint is connected.");
+    setIsDragging(false);
+    pickFile(event.dataTransfer.files?.[0]);
+  }
+
+  function resetFile() {
+    setPdfFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!canSubmit || !pdfFile) return;
+
+    setSubmitting(true);
+    setMessage("Uploading slides, this can take a moment...");
+
+    try {
+      const formData = new FormData();
+      formData.append("pdf", pdfFile);
+      formData.append("name", name);
+      formData.append("topic", topic);
+      formData.append("semester", semester);
+      formData.append("year", year);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Upload failed");
+      }
+
+      const data = await res.json();
+      setMessage(`Lecture created. Join code: ${data.joinCode}`);
+      resetFile();
+      setName("");
+      setTopic("");
+      setSemester("");
+      setYear("");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -27,58 +89,65 @@ export default function UploadLecturePage() {
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10 sm:px-10">
         <h1 className="mb-1 font-serif text-2xl text-ink sm:text-3xl">Upload today&apos;s slides</h1>
         <p className="mb-8 text-sm text-ink-muted">
-          Slides can be previewed here. Saving them will be enabled when the backend is ready.
+          Select your PDF and fill in the details. Slides upload to Cloudinary when you submit.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div>
             <label className="mb-2 block text-sm font-medium text-ink">Slides (PDF)</label>
-            <UploadDropzone
-              onComplete={(uploadedPages) => {
-                setPages(uploadedPages);
-                setMessage("");
-              }}
-              onReset={() => {
-                setPages(null);
-                setMessage("");
-              }}
-            />
+
+            {!pdfFile ? (
+              <div
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors ${
+                  isDragging ? "border-accent bg-accent/5" : "border-line bg-white"
+                }`}
+              >
+                <p className="text-sm text-ink">
+                  Drag & drop a PDF here, or <span className="text-accent underline">browse</span>
+                </p>
+                <p className="mt-1 text-xs text-ink-faint">PDF only</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-between rounded-lg border border-line bg-white px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-ink">{pdfFile.name}</p>
+                  <p className="text-xs text-ink-faint">{(pdfFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetFile}
+                  className="tap-target shrink-0 text-sm text-ink-muted underline"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label htmlFor="title" className="mb-1.5 block text-sm font-medium text-ink">
-                Lecture title
+              <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-ink">
+                Lecture name
               </label>
               <input
-                id="title"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
+                id="name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
                 placeholder="e.g. Entropy & the Second Law"
-                className="tap-target w-full rounded-lg border border-line bg-white px-4 text-ink placeholder:text-ink-faint focus:border-accent"
-              />
-            </div>
-            <div>
-              <label htmlFor="subject" className="mb-1.5 block text-sm font-medium text-ink">
-                Subject
-              </label>
-              <input
-                id="subject"
-                value={subject}
-                onChange={(event) => setSubject(event.target.value)}
-                placeholder="e.g. Physics"
-                className="tap-target w-full rounded-lg border border-line bg-white px-4 text-ink placeholder:text-ink-faint focus:border-accent"
-              />
-            </div>
-            <div>
-              <label htmlFor="unit" className="mb-1.5 block text-sm font-medium text-ink">
-                Unit
-              </label>
-              <input
-                id="unit"
-                value={unit}
-                onChange={(event) => setUnit(event.target.value)}
-                placeholder="e.g. Thermodynamics"
                 className="tap-target w-full rounded-lg border border-line bg-white px-4 text-ink placeholder:text-ink-faint focus:border-accent"
               />
             </div>
@@ -90,7 +159,35 @@ export default function UploadLecturePage() {
                 id="topic"
                 value={topic}
                 onChange={(event) => setTopic(event.target.value)}
-                placeholder="e.g. Entropy & Second Law"
+                placeholder="e.g. Thermodynamics"
+                className="tap-target w-full rounded-lg border border-line bg-white px-4 text-ink placeholder:text-ink-faint focus:border-accent"
+              />
+            </div>
+            <div>
+              <label htmlFor="semester" className="mb-1.5 block text-sm font-medium text-ink">
+                Semester
+              </label>
+              <input
+                id="semester"
+                type="number"
+                inputMode="numeric"
+                value={semester}
+                onChange={(event) => setSemester(event.target.value)}
+                placeholder="e.g. 1"
+                className="tap-target w-full rounded-lg border border-line bg-white px-4 text-ink placeholder:text-ink-faint focus:border-accent"
+              />
+            </div>
+            <div>
+              <label htmlFor="year" className="mb-1.5 block text-sm font-medium text-ink">
+                Year
+              </label>
+              <input
+                id="year"
+                type="number"
+                inputMode="numeric"
+                value={year}
+                onChange={(event) => setYear(event.target.value)}
+                placeholder="e.g. 2026"
                 className="tap-target w-full rounded-lg border border-line bg-white px-4 text-ink placeholder:text-ink-faint focus:border-accent"
               />
             </div>
@@ -103,7 +200,7 @@ export default function UploadLecturePage() {
             disabled={!canSubmit}
             className="tap-target self-start rounded-full bg-accent px-6 text-sm font-medium text-white transition-opacity disabled:opacity-50"
           >
-            Prepare lecture
+            {submitting ? "Uploading..." : "Prepare lecture"}
           </button>
         </form>
       </main>
