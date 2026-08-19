@@ -12,16 +12,24 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    
 
     const normalizedEmail = email.toLowerCase().trim();
-
+    const hashedPassword = await bcrypt.hash(password, 10);
+console.log("password hashed");
+console.log("signup started")
+console.log(
+  "NEON ENV EXISTS:",
+  !!process.env.NEON_DB_CONNECTION_STRING
+);
     const teacher = await prisma.teacher.create({
       data: {
         name,
         email: normalizedEmail,
-        password: await bcrypt.hash(password, 10),
+        password: hashedPassword,
       },
     });
+    console.log("signup completed")
 
     return NextResponse.json(
       {
@@ -38,7 +46,14 @@ export async function POST(req: NextRequest) {
     );
 
   } catch (error: any) {
-console.error("SIGNUP ERROR:", error);
+ console.error("========== SIGNUP ERROR ==========");
+  console.dir(error, { depth: null });
+
+  if (error instanceof Error) {
+    console.error("NAME:", error.name);
+    console.error("MESSAGE:", error.message);
+    console.error("STACK:", error.stack);
+  }
     if (error.code === "P2002") {
       return NextResponse.json(
         { message: "Email already exists" },

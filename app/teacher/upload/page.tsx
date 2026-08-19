@@ -12,6 +12,8 @@ export default function UploadLecturePage() {
   const [semester, setSemester] = useState("");
   const [year, setYear] = useState("");
   const [message, setMessage] = useState("");
+  const [joinCode, setJoinCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,6 +52,8 @@ export default function UploadLecturePage() {
 
     setSubmitting(true);
     setMessage("Uploading slides, this can take a moment...");
+    setJoinCode(null);
+    setCopied(false);
 
     try {
       const formData = new FormData();
@@ -70,7 +74,8 @@ export default function UploadLecturePage() {
       }
 
       const data = await res.json();
-      setMessage(`Lecture created. Join code: ${data.joinCode}`);
+      setJoinCode(data.joinCode ?? null);
+      setMessage("Lecture created successfully.");
       resetFile();
       setName("");
       setTopic("");
@@ -83,6 +88,17 @@ export default function UploadLecturePage() {
     }
   }
 
+  async function copyJoinCode() {
+    if (!joinCode) return;
+    try {
+      await navigator.clipboard.writeText(joinCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard API unavailable — silently ignore, code is still visible to copy manually
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <TeacherHeader teacherName="Teacher" />
@@ -91,6 +107,22 @@ export default function UploadLecturePage() {
         <p className="mb-8 text-sm text-ink-muted">
           Select your PDF and fill in the details. Slides upload to Cloudinary when you submit.
         </p>
+
+        {joinCode && (
+          <div className="mb-8 rounded-lg border border-accent/30 bg-accent/5 px-6 py-5">
+            <p className="mb-2 text-sm font-medium text-ink">Lecture created — share this join code</p>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-2xl tracking-widest text-ink">{joinCode}</span>
+              <button
+                type="button"
+                onClick={copyJoinCode}
+                className="tap-target rounded-full border border-line bg-white px-4 text-xs font-medium text-ink-muted transition-colors hover:border-accent hover:text-accent"
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div>

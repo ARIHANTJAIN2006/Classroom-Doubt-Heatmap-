@@ -4,7 +4,7 @@ import { v2 as cloudinary } from "cloudinary";
 import { customAlphabet } from "nanoid";
 
 cloudinary.config({
-  cloud_name: "dnz3igqb4",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
   secure: true,
@@ -51,6 +51,18 @@ export async function POST(req: NextRequest) {
       joinCode = nanoid();
     }
 
+    let i: number;
+    const pageCount: number = upload.pages;
+    const pageURLs: string[] = [];
+    for (i = 0; i < pageCount; i++) {
+      const pageURL = cloudinary.url(upload.public_id, {
+        format: "jpg",
+        page: i + 1,
+        resource_type: "image",
+      });
+      pageURLs.push(pageURL);
+    }
+
     const lecture = await prisma.lecture.create({
       data: {
         name,
@@ -61,10 +73,19 @@ export async function POST(req: NextRequest) {
         pdfPublicId: upload.public_id,
         joinCode,
         teacherId,
+        slides: {
+          createMany: {
+            data: pageURLs.map((url, index) => ({
+              slideNumber: index + 1,
+              imageUrl: url,
+              imagePublicId: `${upload.public_id}-${index}`,
+            })),
+          },
+        },
       },
     });
 
-    return NextResponse.json({ success: true, lecture });
+    return NextResponse.json({ success: true, joinCode: lecture.joinCode, lecture });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
