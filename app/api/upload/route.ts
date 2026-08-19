@@ -16,12 +16,11 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("pdf") as File | null;
-    const name = formData.get("name") as string | null;
-    const topic = formData.get("topic") as string | null;
+    const name = formData.get("name") as string
+    const topic = formData.get("topic") as string;
     const semester = Number(formData.get("semester"));
     const year = Number(formData.get("year"));
     const teacherId = req.headers.get("x-teacher-id");
-
     if (
       !file ||
       !name?.trim() ||
