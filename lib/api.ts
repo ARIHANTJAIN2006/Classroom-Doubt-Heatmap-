@@ -1,4 +1,4 @@
-import type { ReactionType, SlideAggregate } from "@/lib/types";
+import type { ReactionType } from "@/lib/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -7,6 +7,15 @@ export interface LectureWithSlides {
   name: string;
   joinCode: string;
   slides: { id: string; slideNumber: number; imageUrl: string }[];
+}
+
+export interface SlideAggregate {
+  slideId: string;
+  slideNumber: number;
+  imageUrl: string;
+  totalMarks: number;
+  breakdown: Record<ReactionType, number>;
+  confusionRate: number;
 }
 
 export interface Heatmap {
