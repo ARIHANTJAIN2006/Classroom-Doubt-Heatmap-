@@ -22,12 +22,12 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await axios.post("/api/login", {
+      await axios.post("/api/login", {
         email: email.trim(),
         password,
       });
-      console.log(response.data);
       router.push("/teacher");
+      router.refresh();
     } catch (err) {
       const message =
         axios.isAxiosError(err) && err.response?.data?.message

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
@@ -12,9 +13,28 @@ interface TeacherHeaderProps {
 export default function TeacherHeader({ teacherName }: TeacherHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logOutError, setLogOutError] = useState("");
 
-  function handleLogOut() {
+  async function handleLogOut() {
+    setLoggingOut(true);
+    setLogOutError("");
+
+    // The session lives in an httpOnly cookie, so only the server can clear it.
+    // fetch resolves on 4xx/5xx, so the status has to be checked explicitly —
+    // and if the cookie survived we must not navigate, or the user walks away
+    // from a still-authenticated browser believing they signed out.
+    try {
+      const response = await fetch("/api/logout", { method: "POST" });
+      if (!response.ok) throw new Error("Logout failed");
+    } catch {
+      setLogOutError("Couldn't log out. Please try again.");
+      setLoggingOut(false);
+      return;
+    }
+
     router.push("/login");
+    router.refresh();
   }
 
   return (
@@ -47,15 +67,21 @@ export default function TeacherHeader({ teacherName }: TeacherHeaderProps) {
         </Link>
       </nav>
       <div className="flex items-center gap-3">
+        {logOutError && (
+          <span role="alert" className="text-xs text-heat-red">
+            {logOutError}
+          </span>
+        )}
         <span className="font-mono text-xs text-ink-faint">{teacherName}</span>
         <button
           type="button"
           onClick={handleLogOut}
+          disabled={loggingOut}
           aria-label="Log out"
-          className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-ink-faint transition-colors hover:bg-surfacemuted hover:text-ink"
+          className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-ink-faint transition-colors hover:bg-surfacemuted hover:text-ink disabled:opacity-50"
         >
           <LogOut size={13} />
-          Log out
+          {loggingOut ? "Logging out…" : "Log out"}
         </button>
       </div>
     </header>

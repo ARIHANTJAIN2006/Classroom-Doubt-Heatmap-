@@ -12,24 +12,41 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    
 
     const normalizedEmail = email.toLowerCase().trim();
+
+    // The signup form checks these too, but client-side validation is
+    // bypassable — anything the UI promises has to hold at the API as well.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return NextResponse.json(
+        { message: "Enter a valid email address." },
+        { status: 400 }
+      );
+    }
+
+    if (typeof password !== "string" || password.length < 6) {
+      return NextResponse.json(
+        { message: "Password should be at least 6 characters." },
+        { status: 400 }
+      );
+    }
+
+    if (!String(name).trim()) {
+      return NextResponse.json(
+        { message: "Enter your name." },
+        { status: 400 }
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-console.log("password hashed");
-console.log("signup started")
-console.log(
-  "NEON ENV EXISTS:",
-  !!process.env.NEON_DB_CONNECTION_STRING
-);
+
     const teacher = await prisma.teacher.create({
       data: {
-        name,
+        name: String(name).trim(),
         email: normalizedEmail,
         password: hashedPassword,
       },
     });
-    console.log("signup completed")
 
     return NextResponse.json(
       {
@@ -46,14 +63,8 @@ console.log(
     );
 
   } catch (error: any) {
- console.error("========== SIGNUP ERROR ==========");
-  console.dir(error, { depth: null });
+    console.error("Signup failed:", error);
 
-  if (error instanceof Error) {
-    console.error("NAME:", error.name);
-    console.error("MESSAGE:", error.message);
-    console.error("STACK:", error.stack);
-  }
     if (error.code === "P2002") {
       return NextResponse.json(
         { message: "Email already exists" },
