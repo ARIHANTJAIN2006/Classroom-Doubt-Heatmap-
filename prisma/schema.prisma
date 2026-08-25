@@ -56,3 +56,11 @@ enum Rating {
   confusing
   clear
 }
+
+model LectureInsight {
+  id          String   @id @default(cuid())
+  lectureId   String   @unique
+  slideIds    String[]
+  insight     String
+  generatedAt DateTime @default(now())
+}

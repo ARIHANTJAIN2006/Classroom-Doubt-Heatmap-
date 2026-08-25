@@ -26,10 +26,27 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const lectureIds = lectures.map((lecture) => lecture.id);
+    // Prisma's `distinct` can't count distinct participants across the
+    // ConfusionRating -> Slide -> Lecture relation chain, so this is raw SQL.
+    const respondentCounts = lectureIds.length
+      ? await prisma.$queryRaw<{ lectureId: string; count: number }[]>`
+          SELECT s."lectureId" AS "lectureId", COUNT(DISTINCT cr."participantId")::int AS count
+          FROM "ConfusionRating" cr
+          JOIN "Slide" s ON s.id = cr."slideId"
+          WHERE s."lectureId" = ANY(${lectureIds})
+          GROUP BY s."lectureId"
+        `
+      : [];
+    const respondentCountByLecture = new Map(
+      respondentCounts.map((row) => [row.lectureId, row.count])
+    );
+
     return NextResponse.json({
       lectures: lectures.map(({ _count, ...lecture }) => ({
         ...lecture,
         slideCount: _count.slides,
+        respondentCount: respondentCountByLecture.get(lecture.id) ?? 0,
       })),
     });
   } catch (error) {

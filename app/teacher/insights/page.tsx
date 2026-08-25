@@ -1,0 +1,221 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Presentation, RefreshCw, Sparkles } from "lucide-react";
+import TeacherHeader from "@/components/TeacherHeader";
+import EmptyState from "@/components/EmptyState";
+import { getLectureInsights, type LectureInsights } from "@/lib/api";
+
+interface LectureSummary {
+  id: string;
+  name: string;
+  topic: string;
+  semester: number;
+  year: number;
+  joinCode: string;
+  slideCount: number;
+  respondentCount: number;
+  createdAt: string;
+}
+
+// Same cool -> amber -> red scale used on the heatmap page, for the confusion
+// badges on flagged-slide thumbnails.
+function heatColor(rate: number): string {
+  const cool = [62, 124, 177];
+  const amber = [232, 163, 61];
+  const red = [214, 67, 47];
+
+  const [from, to, t] = rate <= 0.5 ? [cool, amber, rate / 0.5] : [amber, red, (rate - 0.5) / 0.5];
+  const mix = from.map((c, i) => Math.round(c + (to[i] - c) * t));
+  return `rgb(${mix.join(",")})`;
+}
+
+export default function InsightsPage() {
+  const router = useRouter();
+  const [lectures, setLectures] = useState<LectureSummary[] | null>(null);
+  const [listError, setListError] = useState("");
+
+  const [selectedLecture, setSelectedLecture] = useState<LectureSummary | null>(null);
+  const [insights, setInsights] = useState<LectureInsights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/teacher/lectures")
+      .then(async (res) => {
+        if (res.status === 401) {
+          router.push("/login");
+          return null;
+        }
+        if (!res.ok) throw new Error("Request failed");
+        return res.json();
+      })
+      .then((data) => {
+        if (!cancelled && data) setLectures(data.lectures);
+      })
+      .catch(() => {
+        if (!cancelled) setListError("Couldn't load your lectures. Please refresh to try again.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  function loadInsights(lecture: LectureSummary, force = false) {
+    setSelectedLecture(lecture);
+    setInsights(null);
+    setInsightsError("");
+    setInsightsLoading(true);
+
+    getLectureInsights(lecture.id, { force })
+      .then((data) => setInsights(data))
+      .catch(() => setInsightsError("Couldn't reach the insights service. Is the backend running?"))
+      .finally(() => setInsightsLoading(false));
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <TeacherHeader teacherName="Teacher" />
+
+      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10 sm:px-10">
+        {!selectedLecture && (
+          <>
+            <h1 className="mb-1 font-serif text-2xl text-ink sm:text-3xl">Lecture insights</h1>
+            <p className="mb-6 text-sm text-ink-muted">
+              Pick a lecture to see AI-generated insights based on its most confusing slides.
+            </p>
+
+            {listError && <p className="text-sm text-heat-red">{listError}</p>}
+
+            {!listError && lectures === null && (
+              <p className="text-sm text-ink-muted">Loading your lectures…</p>
+            )}
+
+            {lectures !== null && lectures.length === 0 && (
+              <EmptyState
+                icon={<Presentation size={22} />}
+                title="No lectures yet"
+                description="Upload a lecture from the dashboard to start collecting responses."
+              />
+            )}
+
+            {lectures !== null && lectures.length > 0 && (
+              <ul className="flex flex-col gap-3">
+                {lectures.map((lecture) => (
+                  <li key={lecture.id}>
+                    <button
+                      type="button"
+                      onClick={() => loadInsights(lecture)}
+                      className="flex w-full flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-surface px-5 py-4 text-left transition-colors hover:border-line-strong"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-ink">{lecture.name}</p>
+                        <p className="mt-0.5 truncate text-sm text-ink-muted">
+                          {lecture.topic} · Semester {lecture.semester} · {lecture.year} ·{" "}
+                          {lecture.slideCount} slide{lecture.slideCount === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                      <span className="font-mono text-xs text-ink-faint">
+                        {lecture.respondentCount} student{lecture.respondentCount === 1 ? "" : "s"} responded
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+
+        {selectedLecture && (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedLecture(null);
+                setInsights(null);
+                setInsightsError("");
+              }}
+              className="mb-6 flex items-center gap-1.5 text-sm font-medium text-ink-muted hover:text-ink"
+            >
+              <ArrowLeft size={15} />
+              All lectures
+            </button>
+
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+              <h1 className="font-serif text-2xl text-ink sm:text-3xl">{selectedLecture.name}</h1>
+              {insights?.insight && (
+                <button
+                  type="button"
+                  onClick={() => loadInsights(selectedLecture, true)}
+                  disabled={insightsLoading}
+                  className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:text-ink disabled:opacity-50"
+                >
+                  <RefreshCw size={13} />
+                  Regenerate
+                </button>
+              )}
+            </div>
+            <p className="mb-8 text-sm text-ink-muted">
+              {selectedLecture.respondentCount} student{selectedLecture.respondentCount === 1 ? "" : "s"}{" "}
+              responded across {selectedLecture.slideCount} slide
+              {selectedLecture.slideCount === 1 ? "" : "s"}.
+            </p>
+
+            {insightsLoading && (
+              <p className="text-sm text-ink-muted">Analyzing confusing slides…</p>
+            )}
+
+            {insightsError && <p className="text-sm text-heat-red">{insightsError}</p>}
+
+            {!insightsLoading && !insightsError && insights && !insights.insight && (
+              <EmptyState
+                icon={<Sparkles size={22} />}
+                title="No highly-confusing slides yet"
+                description="Once enough students mark slides confusing, insights will appear here."
+              />
+            )}
+
+            {!insightsLoading && !insightsError && insights?.insight && (
+              <>
+                <div className="mb-8 rounded-xl border border-line bg-surface px-6 py-5">
+                  <div className="mb-3 flex items-center gap-2 text-accent">
+                    <Sparkles size={16} />
+                    <span className="text-xs font-medium uppercase tracking-wide">AI insight</span>
+                  </div>
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-ink">
+                    {insights.insight}
+                  </p>
+                </div>
+
+                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-faint">
+                  Based on these slides
+                </p>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {insights.slides.map((slide) => (
+                    <div key={slide.slideId} className="overflow-hidden rounded-xl border border-line bg-surface">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={slide.imageUrl} alt={`Slide ${slide.slideNumber}`} className="w-full" />
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <p className="text-xs font-medium text-ink">Slide {slide.slideNumber}</p>
+                        <span
+                          className="rounded-full px-2 py-0.5 font-mono text-[11px] text-white"
+                          style={{ backgroundColor: heatColor(slide.confusionRate) }}
+                        >
+                          {Math.round(slide.confusionRate * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </main>
+    </div>
+  );
+}

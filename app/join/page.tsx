@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { QrCode } from "lucide-react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -79,11 +78,6 @@ export default function JoinPage() {
             {submitting ? "Checking..." : "Join lecture"}
           </button>
         </form>
-
-        <div className="mt-8 flex items-center justify-center gap-2 text-xs text-ink-faint">
-          <QrCode size={14} />
-          <span>or scan the QR your teacher shared</span>
-        </div>
       </div>
     </main>
   );

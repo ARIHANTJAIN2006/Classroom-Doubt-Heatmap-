@@ -52,3 +52,32 @@ export async function getHeatmap(lectureId: string): Promise<Heatmap> {
   if (!res.ok) throw new Error("Lecture not found");
   return res.json();
 }
+
+export interface FlaggedSlide {
+  slideId: string;
+  slideNumber: number;
+  imageUrl: string;
+  confusionRate: number;
+  totalMarks: number;
+}
+
+export interface LectureInsights {
+  lectureId: string;
+  lectureName: string;
+  insight: string | null;
+  slides: FlaggedSlide[];
+  generatedAt: string | null;
+}
+
+export async function getLectureInsights(
+  lectureId: string,
+  opts?: { force?: boolean }
+): Promise<LectureInsights> {
+  // Routed through this app's own /api/teacher/* (JWT-protected, ownership
+  // checked server-side) rather than calling the FastAPI backend directly —
+  // that call is a paid Claude request, unlike the other functions here.
+  const query = opts?.force ? "?force=true" : "";
+  const res = await fetch(`/api/teacher/lecture/${lectureId}/insights${query}`);
+  if (!res.ok) throw new Error("Couldn't load insights");
+  return res.json();
+}
