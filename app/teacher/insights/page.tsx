@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Presentation, RefreshCw, Sparkles } from "lucide-react";
 import TeacherHeader from "@/components/TeacherHeader";
 import EmptyState from "@/components/EmptyState";
-import { getLectureInsights, type LectureInsights } from "@/lib/api";
+import { getLectureInsights, type FlaggedSlide, type LectureInsights } from "@/lib/api";
 
 interface LectureSummary {
   id: string;
@@ -17,6 +17,68 @@ interface LectureSummary {
   slideCount: number;
   respondentCount: number;
   createdAt: string;
+}
+
+// Renders **bold** spans inside one line of AI-insight text.
+function renderInline(text: string) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={i} className="font-semibold text-ink">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
+// The insights API returns lightweight markdown (paragraphs + "* " bullets).
+// Parse just enough of it to render real <p>/<ul> instead of showing the
+// literal "**"/"*" characters via whitespace-pre-line.
+function renderInsight(text: string, slides: FlaggedSlide[]) {
+  const rateBySlideNumber = new Map(slides.map((s) => [s.slideNumber, s.confusionRate]));
+  const blocks: { type: "p" | "ul"; items: string[] }[] = [];
+
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue;
+    const bullet = line.match(/^[*-]\s+(.*)/);
+    if (bullet) {
+      const last = blocks[blocks.length - 1];
+      if (last?.type === "ul") last.items.push(bullet[1]);
+      else blocks.push({ type: "ul", items: [bullet[1]] });
+    } else {
+      blocks.push({ type: "p", items: [line.trim()] });
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {blocks.map((block, i) =>
+        block.type === "ul" ? (
+          <ul key={i} className="space-y-2">
+            {block.items.map((item, j) => {
+              const slideMatch = item.match(/Slide\s+(\d+)/i);
+              const rate = slideMatch ? rateBySlideNumber.get(Number(slideMatch[1])) : undefined;
+              const dotColor = rate === undefined ? undefined : heatColor(rate);
+              return (
+                <li key={j} className="flex gap-2.5 text-sm leading-relaxed text-ink">
+                  <span
+                    className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
+                    style={dotColor ? { backgroundColor: dotColor } : undefined}
+                  />
+                  <span>{renderInline(item)}</span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p key={i} className="text-sm leading-relaxed text-ink">
+            {renderInline(block.items[0])}
+          </p>
+        )
+      )}
+    </div>
+  );
 }
 
 // Same cool -> amber -> red scale used on the heatmap page, for the confusion
@@ -182,13 +244,15 @@ export default function InsightsPage() {
             {!insightsLoading && !insightsError && insights?.insight && (
               <>
                 <div className="mb-8 rounded-xl border border-line bg-surface px-6 py-5">
-                  <div className="mb-3 flex items-center gap-2 text-accent">
-                    <Sparkles size={16} />
-                    <span className="text-xs font-medium uppercase tracking-wide">AI insight</span>
+                  <div className="mb-4 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent-soft text-accent">
+                      <Sparkles size={13} />
+                    </span>
+                    <span className="text-xs font-medium uppercase tracking-wide text-accent">
+                      AI insight
+                    </span>
                   </div>
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-ink">
-                    {insights.insight}
-                  </p>
+                  {renderInsight(insights.insight, insights.slides)}
                 </div>
 
                 <p className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-faint">
