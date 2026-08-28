@@ -1,4 +1,4 @@
-import type { ReactionType } from "@/lib/types";
+export type ReactionType = "confusing" | "clear";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 

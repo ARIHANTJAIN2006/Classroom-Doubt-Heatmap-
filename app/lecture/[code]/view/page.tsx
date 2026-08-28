@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
-import { getLectureByCode, submitRating, type LectureWithSlides } from "@/lib/api";
+import { getLectureByCode, submitRating, type LectureWithSlides, type ReactionType } from "@/lib/api";
 import { getParticipantId } from "@/lib/participant";
 import { cn } from "@/lib/utils";
-import type { ReactionType } from "@/lib/types";
 
 export default function StudentViewPage() {
   const { code } = useParams<{ code: string }>();
