@@ -135,7 +135,7 @@ export default function InsightsPage() {
 
     getLectureInsights(lecture.id, { force })
       .then((data) => setInsights(data))
-      .catch(() => setInsightsError("Couldn't reach the insights service. Is the backend running?"))
+      .catch(() => setInsightsError("Failed to generate insights. Please try again later."))
       .finally(() => setInsightsLoading(false));
   }
 
