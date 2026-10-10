@@ -1,7 +1,5 @@
 export type ReactionType = "confusing" | "clear";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
 export interface LectureWithSlides {
   id: string;
   name: string;
@@ -25,7 +23,7 @@ export interface Heatmap {
 }
 
 export async function getLectureByCode(joinCode: string): Promise<LectureWithSlides> {
-  const res = await fetch(`${API_URL}/api/lectures/by-code/${encodeURIComponent(joinCode)}`);
+  const res = await fetch(`/api/lectures/by-code/${encodeURIComponent(joinCode)}`);
   if (!res.ok) throw new Error("Lecture not found");
   return res.json();
 }
@@ -37,7 +35,7 @@ export async function submitRating(
   rating: ReactionType
 ): Promise<void> {
   const res = await fetch(
-    `${API_URL}/api/lectures/by-code/${encodeURIComponent(joinCode)}/slides/${slideId}/rating`,
+    `/api/lectures/by-code/${encodeURIComponent(joinCode)}/slides/${slideId}/rating`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -48,7 +46,7 @@ export async function submitRating(
 }
 
 export async function getHeatmap(lectureId: string): Promise<Heatmap> {
-  const res = await fetch(`${API_URL}/api/lectures/${lectureId}/heatmap`);
+  const res = await fetch(`/api/lectures/${lectureId}/heatmap`);
   if (!res.ok) throw new Error("Lecture not found");
   return res.json();
 }
@@ -73,9 +71,6 @@ export async function getLectureInsights(
   lectureId: string,
   opts?: { force?: boolean }
 ): Promise<LectureInsights> {
-  // Routed through this app's own /api/teacher/* (JWT-protected, ownership
-  // checked server-side) rather than calling the FastAPI backend directly —
-  // that call is a paid Claude request, unlike the other functions here.
   const query = opts?.force ? "?force=true" : "";
   const res = await fetch(`/api/teacher/lecture/${lectureId}/insights${query}`);
   if (!res.ok) throw new Error("Couldn't load insights");
